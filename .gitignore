@@ -1,6 +1,7 @@
 # Excluye carpetas de MCUXpresso Workspace
 *.metadata
 *.mcuxpressoide_packages_support
+*.launch
 
 # Excluye SDK para tarjeta FRDM-KL02Z
 /SDK_2.3.1_FRDM-KL02Z.zip
@@ -11,3 +12,7 @@
 
 # Excluye carpeta html de doxygen
 /FRDMKL02Z_Project_UART/doxygen/html/
+
+# Excluye carpeta FreeRTOS_TAD_logs
+/FreeRTOS_TAD_logs/
+
