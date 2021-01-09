@@ -31,7 +31,7 @@
 
 
 /*******************************************************************************
- * Local vars
+ * Private vars
  ******************************************************************************/
 uint8_t uart0_buffer_circular[LONGITUD_BUFFER_CIRCULAR];
 volatile uint16_t txIndex; /* Index of the data to send out. */
@@ -75,11 +75,11 @@ status_t uart0Inicializar(uint32_t baud_rate) {
 	config.enableRx = true;
 
 	status=LPSCI_Init(UART0, &config, CLOCK_GetFreq(kCLOCK_McgFllClk));
+
 	if (status != kStatus_Success)
 		return (status);
 
 	LPSCI_EnableInterrupts(UART0, kLPSCI_RxDataRegFullInterruptEnable);
-
 	status=EnableIRQ(UART_IRQ_INDEX);
 
 	return(status);
@@ -92,7 +92,7 @@ uint8_t uart0NuevosDatosEnBuffer(void) {
 }
 /*--------------------------------------------*/
 status_t uart0LeerByteDesdeBufferCircular(uint8_t *nuevo_byte){
-	if ((kLPSCI_TxDataRegEmptyFlag & LPSCI_GetStatusFlags(UART0)) && (rxIndex != txIndex)) {
+	if (rxIndex != txIndex) {
 		*nuevo_byte=uart0_buffer_circular[txIndex];
 		txIndex++;
 		txIndex %= LONGITUD_BUFFER_CIRCULAR;
