@@ -39,15 +39,17 @@
 #include "clock_config.h"
 #include "MKL02Z4.h"
 #include "fsl_debug_console.h"
+
+
+#include "sdk_hal_uart0.h"
+
 /* TODO: insert other include files here. */
 
 /* TODO: insert other definitions and declarations here. */
-
 /*
  * @brief   Application entry point.
  */
 int main(void) {
-
   	/* Init board hardware. */
     BOARD_InitBootPins();
     BOARD_InitBootClocks();
@@ -57,16 +59,20 @@ int main(void) {
     BOARD_InitDebugConsole();
 #endif
 
-    PRINTF("Hello World\n");
+    (void)uart0Inicializar(115200);
 
-    /* Force the counter to be placed into memory. */
-    volatile static int i = 0 ;
-    /* Enter an infinite loop, just incrementing a counter. */
     while(1) {
-        i++ ;
-        /* 'Dummy' NOP to allow source level single stepping of
-            tight while() loop */
-        __asm volatile ("nop");
+    	status_t status;
+    	uint8_t nuevo_byte;
+
+    	if(uart0NuevosDatosEnBuffer()>0){
+    		status=uart0LeerByteDesdeBufferCircular(&nuevo_byte);
+    		if(status==kStatus_Success){
+    			printf("dato:%c\r\n",nuevo_byte);
+    		}else{
+    			printf("error\r\n");
+    		}
+    	}
     }
     return 0 ;
 }
