@@ -15,10 +15,11 @@
  * Definitions
  ******************************************************************************/
 /*! @brief Define nombre interno de funcion para gestionar interrupción por dato UART */
-#define UART0_IRQ_HANDLER 		UART0_IRQHandler
+#define UART0_IRQ_FUNCTION 	UART0_IRQHandler
 
-/*! @brief Tamaño de buffer circular para recibir datos por UART (Unit: Byte). */
-#define DEMO_RING_BUFFER_SIZE 	64
+/*! @brief Define nombre interno de funcion para gestionar interrupción por dato UART */
+#define UART_IRQ_INDEX 		UART0_IRQn
+
 /*******************************************************************************
  * Private Prototypes
  ******************************************************************************/
@@ -32,7 +33,7 @@
 /*******************************************************************************
  * Local vars
  ******************************************************************************/
-uint8_t demoRingBuffer[DEMO_RING_BUFFER_SIZE];
+uint8_t uart0_buffer_circular[LONGITUD_BUFFER_CIRCULAR];
 volatile uint16_t txIndex; /* Index of the data to send out. */
 volatile uint16_t rxIndex; /* Index of the memory to save new arrived data. */
 
@@ -43,7 +44,7 @@ volatile uint16_t rxIndex; /* Index of the memory to save new arrived data. */
 /*!
  * @brief Funcion que gestiona IRQ por UART0
  */
-void UART0_IRQ_HANDLER(void)
+void UART0_IRQ_FUNCTION(void)
 {
     uint8_t data;
 
@@ -51,12 +52,11 @@ void UART0_IRQ_HANDLER(void)
     {
         data = LPSCI_ReadByte(UART0);
 
-        /* If ring buffer is not full, add data to ring buffer. */
-        if (((rxIndex + 1) % DEMO_RING_BUFFER_SIZE) != txIndex)
+        if (((rxIndex + 1) % LONGITUD_BUFFER_CIRCULAR) != txIndex)
         {
-            demoRingBuffer[rxIndex] = data;
+            uart0_buffer_circular[rxIndex] = data;
             rxIndex++;
-            rxIndex %= DEMO_RING_BUFFER_SIZE;
+            rxIndex %= LONGITUD_BUFFER_CIRCULAR;
         }
     }
 }
@@ -65,3 +65,39 @@ void UART0_IRQ_HANDLER(void)
  * Public Source Code
  ******************************************************************************/
 /*--------------------------------------------*/
+status_t uart0Inicializar(uint32_t baud_rate) {
+	lpsci_config_t config;
+	status_t status;
+
+	LPSCI_GetDefaultConfig(&config);
+	config.baudRate_Bps = baud_rate;
+	config.enableTx = true;
+	config.enableRx = true;
+
+	status=LPSCI_Init(UART0, &config, CLOCK_GetFreq(kCLOCK_McgFllClk));
+	if (status != kStatus_Success)
+		return (status);
+
+	LPSCI_EnableInterrupts(UART0, kLPSCI_RxDataRegFullInterruptEnable);
+
+	status=EnableIRQ(UART_IRQ_INDEX);
+
+	return(status);
+}
+/*--------------------------------------------*/
+uint8_t uart0NuevosDatosEnBuffer(void) {
+	uint8_t NumeroDeDatosNuevosEnBuffer;
+	NumeroDeDatosNuevosEnBuffer = (uint8_t) (rxIndex - txIndex);
+	return (NumeroDeDatosNuevosEnBuffer);
+}
+/*--------------------------------------------*/
+status_t uart0LeerByteDesdeBufferCircular(uint8_t *nuevo_byte){
+	if ((kLPSCI_TxDataRegEmptyFlag & LPSCI_GetStatusFlags(UART0)) && (rxIndex != txIndex)) {
+		*nuevo_byte=uart0_buffer_circular[txIndex];
+		txIndex++;
+		txIndex %= LONGITUD_BUFFER_CIRCULAR;
+		return(kStatus_Success);
+	}else{
+		return(kStatus_Fail);
+	}
+}
